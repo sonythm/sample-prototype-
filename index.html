@@ -60,7 +60,13 @@ a:focus-visible,button:focus-visible{outline:3px solid var(--info);outline-offse
 .case .open{font-weight:600;color:var(--info);font-size:.95rem}
 
 .brief{margin-bottom:16px;max-width:75ch}
-.brief h1{margin:2px 0 8px}
+.brief h1,.brief h2{margin:2px 0 8px}
+.brief h2{font-size:1.5rem}
+.homehint{color:var(--ink)!important}
+.pager[hidden]{display:none}
+.homehint ~ p{display:none}
+#homeHead header p{max-width:70ch}
+#homeCases{margin-top:8px}
 .brief p{margin:6px 0;color:var(--ink-2)}
 .brief b{color:var(--ink)}
 
@@ -145,12 +151,11 @@ footer{margin-top:28px;font-size:.84rem;color:var(--ink-2);max-width:72ch}
 <main>
   <nav class="topnav" aria-label="Site"><a href="#">All use cases</a><span id="crumb"></span></nav>
 
-  <div id="homeView">
+  <div id="homeHead">
     <header>
       <h1>Agent orchestration behind a trust perimeter</h1>
       <p>A working prototype of one layered design applied across industries. Every request, from a person, a machine or a partner API, crosses the trust perimeter first. A central orchestrator plans the route, domain agents act only inside their scopes, machines and third-party systems are reached only through the integration layer, and every handoff carries a stateful, hash-chained envelope.</p>
     </header>
-    <div id="cases"></div>
   </div>
 
   <div id="demoView" hidden>
@@ -216,6 +221,10 @@ footer{margin-top:28px;font-size:.84rem;color:var(--ink-2);max-width:72ch}
       </section>
     </div>
     <nav class="pager" id="pager" aria-label="Other use cases"></nav>
+  </div>
+
+  <div id="homeCases">
+    <div id="cases"></div>
   </div>
 
   <footer>Prototype by Sonith M. All data is simulated and no real systems, devices or partners are called. Clinical and machine-control decisions in these demos always stay with qualified people.</footer>
@@ -407,7 +416,7 @@ inject:{
 };
 
 const LAYER={trust:"Trust perimeter",orch:"Orchestrator",gov:"Governance",int:"Integration"};
-let current=null,idx=0,timer=null,ledger=[],paused=false,finished=false,autoRun=false;
+let homeMode=false,current=null,idx=0,timer=null,ledger=[],paused=false,finished=false,autoRun=false;
 const $=id=>document.getElementById(id);
 const sc=()=>SCENARIOS[current];
 const actorName=a=>LAYER[a]||(sc().agents.find(x=>x[0]===a)||[0,a])[1];
@@ -425,10 +434,11 @@ function renderArch(){
     const ids=v.systems.filter(id=>SYS[id][1]===k);
     return ids.length?`<div class="sysgroup"><h4>${label}</h4><div class="chips">${ids.map(id=>`<span class="sys" id="sys-${id}">${SYS[id][0]}</span>`).join("")}</div></div>`:"";
   }).join("");
-  $("brief").innerHTML=`<span class="area" style="color:var(${v.sec?"--deny":v.big?"--info":"--pass"})">${v.area}</span><h1>${v.name}</h1><p><b>The problem.</b> ${v.problem}</p><p><b>With orchestration.</b> ${v.value}</p>`;
+  $("brief").innerHTML=`<span class="area" style="color:var(${v.sec?"--deny":v.big?"--info":"--pass"})">${v.area}</span><${homeMode?"h2":"h1"}>${v.name}</${homeMode?"h2":"h1"}>${homeMode?`<p class="homehint"><b>Live simulation.</b> Press Run workflow or Step through to watch one request cross every layer. Choose any other use case below.</p>`:""}<p><b>The problem.</b> ${v.problem}</p><p><b>With orchestration.</b> ${v.value}</p>`;
   $("reqWho").textContent=v.who;$("reqTxt").textContent="“"+v.text+"”";
   const ks=Object.keys(SCENARIOS),i=ks.indexOf(current);
   const p=SCENARIOS[ks[(i-1+ks.length)%ks.length]],n=SCENARIOS[ks[(i+1)%ks.length]];
+  $("pager").hidden=homeMode;
   $("pager").innerHTML=`<a href="#${p.slug}"><small>Previous use case</small>${p.name}</a><a class="next" href="#${n.slug}"><small>Next use case</small>${n.name}</a>`;
 }
 function clearNodes(){document.querySelectorAll(".node,.sys").forEach(n=>n.classList.remove("on-pass","on-deny","on-wait","on-info","touch","breach","active"))}
@@ -490,9 +500,11 @@ function route(){
   const h=location.hash.slice(1);
   const key=Object.keys(SCENARIOS).find(k=>SCENARIOS[k].slug===h);
   stopTimer();
-  if(!key){$("homeView").hidden=false;$("demoView").hidden=true;$("crumb").textContent="";document.title="Agent orchestration use cases";return}
-  current=key;$("homeView").hidden=true;$("demoView").hidden=false;
+  homeMode=!key;
+  $("homeHead").hidden=!homeMode;$("homeCases").hidden=!homeMode;$("demoView").hidden=false;
+  current=key||Object.keys(SCENARIOS).find(k=>SCENARIOS[k].slug==="smart-factory")||Object.keys(SCENARIOS)[0];
   renderArch();reset();
+  if(homeMode){$("crumb").textContent="";document.title="Agent orchestration use cases";return}
   $("crumb").textContent=sc().name;document.title=sc().name+": agent orchestration demo";window.scrollTo(0,0);
 }
 $("runBtn").onclick=()=>{autoRun=true;next();startTimer();updateButtons()};
